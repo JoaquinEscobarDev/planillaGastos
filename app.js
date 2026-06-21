@@ -8,43 +8,99 @@
   }
 
   const STORAGE_KEY = config.storageKey;
+  const API_URL = "/api/data/" + config.personId;
   const defaultData = config.defaultData;
 
-  function loadData() {
+  function normalize(parsed) {
+    return {
+      income: typeof parsed.income === "number" ? parsed.income : defaultData.income,
+      fixed: Array.isArray(parsed.fixed) ? parsed.fixed : structuredClone(defaultData.fixed),
+      cmr: parsed.cmr ? parsed.cmr : structuredClone(defaultData.cmr),
+      outings: Array.isArray(parsed.outings) ? parsed.outings : structuredClone(defaultData.outings),
+      savings: Array.isArray(parsed.savings) ? parsed.savings : structuredClone(defaultData.savings || [])
+    };
+  }
+
+  function loadLocalCache() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return structuredClone(defaultData);
-      const parsed = JSON.parse(raw);
-      return {
-        income: typeof parsed.income === "number" ? parsed.income : defaultData.income,
-        fixed: Array.isArray(parsed.fixed) ? parsed.fixed : structuredClone(defaultData.fixed),
-        cmr: parsed.cmr ? parsed.cmr : structuredClone(defaultData.cmr),
-        outings: Array.isArray(parsed.outings) ? parsed.outings : structuredClone(defaultData.outings),
-        savings: Array.isArray(parsed.savings) ? parsed.savings : structuredClone(defaultData.savings || [])
-      };
+      return normalize(JSON.parse(raw));
     } catch (e) {
       console.warn("No se pudo leer localStorage, usando valores por defecto.", e);
       return structuredClone(defaultData);
     }
   }
 
-  let data = loadData();
+  // `data` keeps stable object/array references so listeners set up once
+  // (setupAddForm) keep working after a server sync replaces its contents.
+  const data = structuredClone(defaultData);
+
+  function applyRemote(remote) {
+    const normalized = normalize(remote);
+    data.income = normalized.income;
+    data.cmr = normalized.cmr;
+    data.fixed.length = 0;
+    data.fixed.push(...normalized.fixed);
+    data.outings.length = 0;
+    data.outings.push(...normalized.outings);
+    data.savings.length = 0;
+    data.savings.push(...normalized.savings);
+  }
+
   let savedIndicatorTimeout = null;
   let saveDebounceTimer = null;
 
-  function saveData() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  function setIndicator(text) {
     const indicator = document.getElementById("savedIndicator");
-    if (indicator) {
-      indicator.textContent = "Guardado ✓ " + new Date().toLocaleTimeString("es-CL");
-      clearTimeout(savedIndicatorTimeout);
-      savedIndicatorTimeout = setTimeout(() => { indicator.textContent = ""; }, 2000);
-    }
+    if (!indicator) return;
+    indicator.textContent = text;
+    clearTimeout(savedIndicatorTimeout);
+    savedIndicatorTimeout = setTimeout(() => { indicator.textContent = ""; }, 2500);
   }
 
-  function saveDebounced() {
+  function persist() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("status " + res.status);
+        setIndicator("Sincronizado ✓ " + new Date().toLocaleTimeString("es-CL"));
+      })
+      .catch((err) => {
+        console.warn("No se pudo sincronizar con el servidor, se guardó solo localmente.", err);
+        setIndicator("Guardado en este dispositivo (sin conexión)");
+      });
+  }
+
+  function persistDebounced() {
     clearTimeout(saveDebounceTimer);
-    saveDebounceTimer = setTimeout(saveData, 300);
+    saveDebounceTimer = setTimeout(persist, 300);
+  }
+
+  async function syncFromServer(isInitial) {
+    try {
+      const res = await fetch(API_URL, { cache: "no-store" });
+      if (res.ok) {
+        applyRemote(await res.json());
+        renderAll();
+        return;
+      }
+      if (isInitial) {
+        applyRemote(loadLocalCache());
+        renderAll();
+        persist();
+      }
+    } catch (e) {
+      console.warn("No se pudo contactar al servidor.", e);
+      if (isInitial) {
+        applyRemote(loadLocalCache());
+        renderAll();
+      }
+    }
   }
 
   function formatCLP(value) {
@@ -211,7 +267,7 @@
     document.getElementById("cmrRemaining").textContent =
       "Deuda restante tras pago mínimo: " + formatCLP(remaining < 0 ? 0 : remaining);
 
-    saveDebounced();
+    persistDebounced();
   }
 
   document.getElementById("incomeInput").addEventListener("input", (e) => {
@@ -246,13 +302,26 @@
     data.savings.forEach((item) => { item.paid = false; });
     data.cmr.paid = false;
     renderAll();
-    saveData();
+    persist();
   });
 
   setupAddForm("fixed", data.fixed);
   setupAddForm("outing", data.outings);
   setupAddForm("savings", data.savings);
 
+  // Re-sync when the tab regains focus, so changes made on another device
+  // show up without the user needing to know they should refresh.
+  function maybeResync() {
+    const active = document.activeElement;
+    const isEditing = active && (active.tagName === "INPUT");
+    if (!isEditing) syncFromServer(false);
+  }
+  window.addEventListener("focus", maybeResync);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") maybeResync();
+  });
+
   setHeader();
   renderAll();
+  syncFromServer(true);
 })();
