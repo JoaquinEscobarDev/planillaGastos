@@ -17,6 +17,7 @@
       fixed: Array.isArray(parsed.fixed) ? parsed.fixed : structuredClone(defaultData.fixed),
       cmr: parsed.cmr ? parsed.cmr : structuredClone(defaultData.cmr),
       outings: Array.isArray(parsed.outings) ? parsed.outings : structuredClone(defaultData.outings),
+      daily: Array.isArray(parsed.daily) ? parsed.daily : structuredClone(defaultData.daily || []),
       savings: Array.isArray(parsed.savings) ? parsed.savings : structuredClone(defaultData.savings || [])
     };
   }
@@ -44,6 +45,8 @@
     data.fixed.push(...normalized.fixed);
     data.outings.length = 0;
     data.outings.push(...normalized.outings);
+    data.daily.length = 0;
+    data.daily.push(...normalized.daily);
     data.savings.length = 0;
     data.savings.push(...normalized.savings);
   }
@@ -249,6 +252,7 @@
 
     renderList("fixedList", data.fixed, "Sin gastos fijos todavía. Agrega uno abajo.");
     renderList("outingList", data.outings, "Sin salidas todavía. Agrega una abajo.");
+    renderList("dailyList", data.daily, "Sin gastos diarios todavía. Agrega uno abajo.");
     renderList("savingsList", data.savings, "Sin ahorros todavía. Agrega uno abajo.", true);
 
     document.querySelector(".container").classList.add("loaded");
@@ -260,21 +264,24 @@
     const income = Number(data.income) || 0;
     const fixedTotal = sumAmounts(data.fixed);
     const outingTotal = sumAmounts(data.outings);
+    const dailyTotal = sumAmounts(data.daily);
     const savingsTotal = sumAmounts(data.savings);
     const cmrMin = Number(data.cmr.min) || 0;
     const cmrDebt = Number(data.cmr.debt) || 0;
 
-    const totalExpenses = fixedTotal + outingTotal + cmrMin + savingsTotal;
+    const totalExpenses = fixedTotal + outingTotal + dailyTotal + cmrMin + savingsTotal;
     const available = income - totalExpenses;
 
     document.getElementById("fixedTotalLabel").textContent = formatCLP(fixedTotal);
     document.getElementById("outingTotalLabel").textContent = formatCLP(outingTotal);
+    document.getElementById("dailyTotalLabel").textContent = formatCLP(dailyTotal);
     document.getElementById("savingsTotalLabel").textContent = formatCLP(savingsTotal);
 
     document.getElementById("sumIncome").textContent = formatCLP(income);
     document.getElementById("sumFixed").textContent = formatCLP(fixedTotal);
     document.getElementById("sumCmr").textContent = formatCLP(cmrMin);
     document.getElementById("sumOuting").textContent = formatCLP(outingTotal);
+    document.getElementById("sumDaily").textContent = formatCLP(dailyTotal);
     document.getElementById("sumSavings").textContent = formatCLP(savingsTotal);
 
     const availableEl = document.getElementById("sumAvailable");
@@ -320,6 +327,7 @@
     }
     data.fixed.forEach((item) => { item.paid = false; });
     data.outings.forEach((item) => { item.paid = false; });
+    data.daily.forEach((item) => { item.paid = false; });
     data.savings.forEach((item) => { item.paid = false; });
     data.cmr.paid = false;
     renderAll();
@@ -328,6 +336,7 @@
 
   setupAddForm("fixed", data.fixed);
   setupAddForm("outing", data.outings);
+  setupAddForm("daily", data.daily);
   setupAddForm("savings", data.savings);
 
   // Re-sync when the tab regains focus, so changes made on another device

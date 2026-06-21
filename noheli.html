@@ -35,6 +35,10 @@
       <span id="sumOuting">$0</span>
     </div>
     <div class="summary-row">
+      <span class="label">Gastos diarios</span>
+      <span id="sumDaily">$0</span>
+    </div>
+    <div class="summary-row">
       <span class="label">Ahorro</span>
       <span id="sumSavings">$0</span>
     </div>
@@ -102,6 +106,20 @@
     </div>
   </div>
 
+  <!-- GASTOS DIARIOS -->
+  <div class="section">
+    <div class="section-header">
+      <span>Gastos diarios</span>
+      <span class="section-total" id="dailyTotalLabel">$0</span>
+    </div>
+    <div id="dailyList"></div>
+    <div class="add-row">
+      <input type="text" id="dailyAddName" placeholder="Café, snack, etc.">
+      <input type="number" id="dailyAddAmount" placeholder="Monto" min="0" step="500">
+      <button type="button" class="add-btn" id="dailyAddBtn">+ Agregar</button>
+    </div>
+  </div>
+
   <!-- AHORRO -->
   <div class="section">
     <div class="section-header">
@@ -136,6 +154,7 @@
         paid: false
       },
       outings: [],
+      daily: [],
       savings: []
     }
   };
