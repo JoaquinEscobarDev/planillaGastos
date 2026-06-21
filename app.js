@@ -118,7 +118,7 @@
     const monthEl = document.getElementById("monthLabel");
     if (monthEl) {
       const now = new Date();
-      const label = now.toLocaleDateString("es-CL", { month: "long", year: "numeric" });
+      const label = now.toLocaleDateString("es-CL", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
       monthEl.textContent = label.charAt(0).toUpperCase() + label.slice(1);
     }
   }
