@@ -186,8 +186,8 @@
         topUpBtn.className = "topup-btn";
         topUpBtn.type = "button";
         topUpBtn.textContent = "+";
-        topUpBtn.setAttribute("aria-label", "Agregar monto a este ahorro");
-        topUpBtn.title = "Agregar monto a este ahorro";
+        topUpBtn.setAttribute("aria-label", "Sumar monto a este ítem");
+        topUpBtn.title = "Sumar monto a este ítem";
         topUpBtn.addEventListener("click", () => {
           const input = prompt("¿Cuánto quieres agregar a \"" + item.name + "\"? (actual: " + formatCLP(item.amount) + ")");
           if (input === null) return;
@@ -252,7 +252,7 @@
 
     renderList("fixedList", data.fixed, "Sin gastos fijos todavía. Agrega uno abajo.");
     renderList("outingList", data.outings, "Sin salidas todavía. Agrega una abajo.");
-    renderList("dailyList", data.daily, "Sin gastos diarios todavía. Agrega uno abajo.");
+    renderList("dailyList", data.daily, "Sin gastos diarios todavía. Agrega uno abajo.", true);
     renderList("savingsList", data.savings, "Sin ahorros todavía. Agrega uno abajo.", true);
 
     document.querySelector(".container").classList.add("loaded");
