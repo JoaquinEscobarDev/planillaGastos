@@ -56,6 +56,12 @@ header .back-link {
   max-width: 640px;
   margin: 0 auto;
   padding: 12px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.container.loaded {
+  opacity: 1;
 }
 
 /* ---- Landing page ---- */

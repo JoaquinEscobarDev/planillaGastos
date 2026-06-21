@@ -232,6 +232,8 @@
     renderList("outingList", data.outings, "Sin salidas todavía. Agrega una abajo.");
     renderList("savingsList", data.savings, "Sin ahorros todavía. Agrega uno abajo.");
 
+    document.querySelector(".container").classList.add("loaded");
+
     update();
   }
 
@@ -322,6 +324,5 @@
   });
 
   setHeader();
-  renderAll();
   syncFromServer(true);
 })();
