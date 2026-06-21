@@ -124,7 +124,7 @@
     return items.reduce((acc, item) => acc + (Number(item.amount) || 0), 0);
   }
 
-  function renderList(containerId, items, emptyText) {
+  function renderList(containerId, items, emptyText, allowTopUp) {
     const container = document.getElementById(containerId);
     container.innerHTML = "";
 
@@ -174,6 +174,28 @@
       amountWrap.appendChild(currency);
       amountWrap.appendChild(amountInput);
 
+      row.appendChild(checkbox);
+      row.appendChild(nameSpan);
+      row.appendChild(amountWrap);
+
+      if (allowTopUp) {
+        const topUpBtn = document.createElement("button");
+        topUpBtn.className = "topup-btn";
+        topUpBtn.type = "button";
+        topUpBtn.textContent = "+";
+        topUpBtn.setAttribute("aria-label", "Agregar monto a este ahorro");
+        topUpBtn.title = "Agregar monto a este ahorro";
+        topUpBtn.addEventListener("click", () => {
+          const input = prompt("¿Cuánto quieres agregar a \"" + item.name + "\"? (actual: " + formatCLP(item.amount) + ")");
+          if (input === null) return;
+          const addAmount = parseFloat(input);
+          if (isNaN(addAmount) || addAmount <= 0) return;
+          items[index].amount = (Number(items[index].amount) || 0) + addAmount;
+          renderAll();
+        });
+        row.appendChild(topUpBtn);
+      }
+
       const deleteBtn = document.createElement("button");
       deleteBtn.className = "delete-btn";
       deleteBtn.type = "button";
@@ -184,9 +206,6 @@
         renderAll();
       });
 
-      row.appendChild(checkbox);
-      row.appendChild(nameSpan);
-      row.appendChild(amountWrap);
       row.appendChild(deleteBtn);
       container.appendChild(row);
     });
@@ -230,7 +249,7 @@
 
     renderList("fixedList", data.fixed, "Sin gastos fijos todavía. Agrega uno abajo.");
     renderList("outingList", data.outings, "Sin salidas todavía. Agrega una abajo.");
-    renderList("savingsList", data.savings, "Sin ahorros todavía. Agrega uno abajo.");
+    renderList("savingsList", data.savings, "Sin ahorros todavía. Agrega uno abajo.", true);
 
     document.querySelector(".container").classList.add("loaded");
 

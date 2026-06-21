@@ -260,6 +260,22 @@ header .back-link {
 
 .item .delete-btn:active { color: var(--red); }
 
+.item .topup-btn {
+  flex-shrink: 0;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--green);
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  line-height: 1;
+}
+
+.item .topup-btn:active { background: var(--card-2); }
+
 input[type="number"],
 input[type="text"] {
   background: var(--card-2);
