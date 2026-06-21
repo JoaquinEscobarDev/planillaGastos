@@ -1,0 +1,13 @@
+{
+  "name": "planilla-gastos",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Control de gastos mensuales personales",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

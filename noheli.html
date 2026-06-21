@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gastos de Noheli</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <a class="back-link" href="index.html">← Volver al inicio</a>
+  <h1 id="personName">💜 Planilla de Noheli</h1>
+  <div class="month" id="monthLabel"></div>
+</header>
+
+<div class="container">
+
+  <!-- RESUMEN -->
+  <div class="summary" id="summaryBox">
+    <div class="summary-row">
+      <span class="label">Ingreso mensual</span>
+      <span class="amount-green" id="sumIncome">$0</span>
+    </div>
+    <div class="summary-row">
+      <span class="label">Gastos fijos</span>
+      <span id="sumFixed">$0</span>
+    </div>
+    <div class="summary-row">
+      <span class="label">Tarjeta CMR (pago mínimo)</span>
+      <span id="sumCmr">$0</span>
+    </div>
+    <div class="summary-row">
+      <span class="label">Salidas</span>
+      <span id="sumOuting">$0</span>
+    </div>
+    <div class="summary-row">
+      <span class="label">Ahorro</span>
+      <span id="sumSavings">$0</span>
+    </div>
+    <div class="summary-row total">
+      <span class="label">Disponible</span>
+      <span id="sumAvailable">$0</span>
+    </div>
+    <div class="alert-banner" id="alertBanner">⚠️ Tus gastos superan tu ingreso</div>
+  </div>
+
+  <!-- INGRESO -->
+  <div class="section">
+    <div class="section-header">Ingreso mensual</div>
+    <div class="income-row">
+      <label for="incomeInput">Monto del mes</label>
+      <input type="number" id="incomeInput" min="0" step="1000">
+    </div>
+  </div>
+
+  <!-- GASTOS FIJOS -->
+  <div class="section">
+    <div class="section-header">
+      <span>Gastos fijos</span>
+      <span class="section-total" id="fixedTotalLabel">$0</span>
+    </div>
+    <div id="fixedList"></div>
+    <div class="add-row">
+      <input type="text" id="fixedAddName" placeholder="Nombre del gasto">
+      <input type="number" id="fixedAddAmount" placeholder="Monto" min="0" step="1000">
+      <button type="button" class="add-btn" id="fixedAddBtn">+ Agregar</button>
+    </div>
+  </div>
+
+  <!-- TARJETA CMR -->
+  <div class="section">
+    <div class="section-header">Tarjeta CMR</div>
+    <div class="cmr-box">
+      <div class="cmr-row">
+        <label for="cmrDebt">Deuda total actual</label>
+        <input type="number" id="cmrDebt" min="0" step="1000">
+      </div>
+      <div class="cmr-row">
+        <label for="cmrMin">Pago mínimo de este mes</label>
+        <input type="number" id="cmrMin" min="0" step="1000">
+      </div>
+      <div class="cmr-row">
+        <label for="cmrPaid">¿Pagaste el mínimo este mes?</label>
+        <input type="checkbox" id="cmrPaid">
+      </div>
+      <div class="cmr-result" id="cmrRemaining">Deuda restante: $0</div>
+    </div>
+  </div>
+
+  <!-- SALIDAS -->
+  <div class="section">
+    <div class="section-header">
+      <span>Salidas</span>
+      <span class="section-total" id="outingTotalLabel">$0</span>
+    </div>
+    <div id="outingList"></div>
+    <div class="add-row">
+      <input type="text" id="outingAddName" placeholder="Nombre de la salida">
+      <input type="number" id="outingAddAmount" placeholder="Monto" min="0" step="1000">
+      <button type="button" class="add-btn" id="outingAddBtn">+ Agregar</button>
+    </div>
+  </div>
+
+  <!-- AHORRO -->
+  <div class="section">
+    <div class="section-header">
+      <span>Ahorro</span>
+      <span class="section-total" id="savingsTotalLabel">$0</span>
+    </div>
+    <div id="savingsList"></div>
+    <div class="add-row">
+      <input type="text" id="savingsAddName" placeholder="Nombre del ahorro">
+      <input type="number" id="savingsAddAmount" placeholder="Monto" min="0" step="1000">
+      <button type="button" class="add-btn" id="savingsAddBtn">+ Agregar</button>
+    </div>
+  </div>
+
+  <button class="btn danger" id="resetBtn">🔄 Resetear mes (desmarcar pagados)</button>
+  <div class="saved-indicator" id="savedIndicator"></div>
+
+</div>
+
+<script>
+  window.PLANILLA_CONFIG = {
+    storageKey: "gastos_noheli_v1",
+    personName: "Noheli",
+    headerTitle: "💜 Planilla de Noheli",
+    defaultData: {
+      income: 0,
+      fixed: [],
+      cmr: {
+        debt: 0,
+        min: 0,
+        paid: false
+      },
+      outings: [],
+      savings: []
+    }
+  };
+</script>
+<script src="app.js"></script>
+
+</body>
+</html>
