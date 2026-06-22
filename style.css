@@ -260,21 +260,62 @@ header .back-link {
 
 .item .delete-btn:active { color: var(--red); }
 
-.item .topup-btn {
+/* ---- Items acumulables (Gastos diarios, Ahorro) ---- */
+.item.topup {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.item-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.item-main .name {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.topup-total {
   flex-shrink: 0;
-  background: none;
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  font-weight: 700;
   color: var(--green);
-  font-size: 1rem;
+  font-size: 0.95rem;
+}
+
+.item-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 28px;
+}
+
+.topup-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto;
+  text-align: left;
+}
+
+.step-btn {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card-2);
+  font-size: 1.1rem;
   font-weight: 700;
   cursor: pointer;
-  width: 28px;
-  height: 28px;
   line-height: 1;
 }
 
-.item .topup-btn:active { background: var(--card-2); }
+.step-btn:active { opacity: 0.7; }
+
+.minus-btn { color: var(--red); }
+.plus-btn { color: var(--green); }
 
 input[type="number"],
 input[type="text"] {

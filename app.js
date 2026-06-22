@@ -11,14 +11,28 @@
   const API_URL = "/api/data/" + config.personId;
   const defaultData = config.defaultData;
 
+  // Items en secciones "acumulables" (Gastos diarios, Ahorro) guardan un
+  // monto a sumar (`amount`) por separado del total acumulado (`total`).
+  // Los registros viejos solo tenían `amount` representando el total: lo
+  // migramos a `total` y dejamos `amount` en 0 para la próxima suma.
+  function ensureTotal(items) {
+    items.forEach((item) => {
+      if (typeof item.total !== "number") {
+        item.total = Number(item.amount) || 0;
+        item.amount = 0;
+      }
+    });
+    return items;
+  }
+
   function normalize(parsed) {
     return {
       income: typeof parsed.income === "number" ? parsed.income : defaultData.income,
       fixed: Array.isArray(parsed.fixed) ? parsed.fixed : structuredClone(defaultData.fixed),
       cmr: parsed.cmr ? parsed.cmr : structuredClone(defaultData.cmr),
       outings: Array.isArray(parsed.outings) ? parsed.outings : structuredClone(defaultData.outings),
-      daily: Array.isArray(parsed.daily) ? parsed.daily : structuredClone(defaultData.daily || []),
-      savings: Array.isArray(parsed.savings) ? parsed.savings : structuredClone(defaultData.savings || [])
+      daily: ensureTotal(Array.isArray(parsed.daily) ? parsed.daily : structuredClone(defaultData.daily || [])),
+      savings: ensureTotal(Array.isArray(parsed.savings) ? parsed.savings : structuredClone(defaultData.savings || []))
     };
   }
 
@@ -127,6 +141,10 @@
     return items.reduce((acc, item) => acc + (Number(item.amount) || 0), 0);
   }
 
+  function sumTotals(items) {
+    return items.reduce((acc, item) => acc + (Number(item.total) || 0), 0);
+  }
+
   function renderList(containerId, items, emptyText, allowTopUp) {
     const container = document.getElementById(containerId);
     container.innerHTML = "";
@@ -156,49 +174,6 @@
       nameSpan.className = "name" + (item.paid ? " paid" : "");
       nameSpan.textContent = item.name;
 
-      const amountWrap = document.createElement("div");
-      amountWrap.className = "amount-wrap";
-
-      const currency = document.createElement("span");
-      currency.className = "currency";
-      currency.textContent = "$";
-
-      const amountInput = document.createElement("input");
-      amountInput.type = "number";
-      amountInput.min = "0";
-      amountInput.step = "1000";
-      amountInput.value = item.amount;
-      amountInput.addEventListener("input", () => {
-        const val = parseFloat(amountInput.value);
-        items[index].amount = isNaN(val) ? 0 : val;
-        update();
-      });
-
-      amountWrap.appendChild(currency);
-      amountWrap.appendChild(amountInput);
-
-      row.appendChild(checkbox);
-      row.appendChild(nameSpan);
-      row.appendChild(amountWrap);
-
-      if (allowTopUp) {
-        const topUpBtn = document.createElement("button");
-        topUpBtn.className = "topup-btn";
-        topUpBtn.type = "button";
-        topUpBtn.textContent = "+";
-        topUpBtn.setAttribute("aria-label", "Sumar monto a este ítem");
-        topUpBtn.title = "Sumar monto a este ítem";
-        topUpBtn.addEventListener("click", () => {
-          const input = prompt("¿Cuánto quieres agregar a \"" + item.name + "\"? (actual: " + formatCLP(item.amount) + ")");
-          if (input === null) return;
-          const addAmount = parseFloat(input);
-          if (isNaN(addAmount) || addAmount <= 0) return;
-          items[index].amount = (Number(items[index].amount) || 0) + addAmount;
-          renderAll();
-        });
-        row.appendChild(topUpBtn);
-      }
-
       const deleteBtn = document.createElement("button");
       deleteBtn.className = "delete-btn";
       deleteBtn.type = "button";
@@ -209,12 +184,102 @@
         renderAll();
       });
 
-      row.appendChild(deleteBtn);
+      if (allowTopUp) {
+        row.classList.add("topup");
+
+        const main = document.createElement("div");
+        main.className = "item-main";
+
+        const totalSpan = document.createElement("span");
+        totalSpan.className = "topup-total";
+        totalSpan.textContent = formatCLP(item.total);
+
+        main.appendChild(checkbox);
+        main.appendChild(nameSpan);
+        main.appendChild(totalSpan);
+        main.appendChild(deleteBtn);
+
+        const controls = document.createElement("div");
+        controls.className = "item-controls";
+
+        const amountInput = document.createElement("input");
+        amountInput.type = "number";
+        amountInput.min = "0";
+        amountInput.step = "100";
+        amountInput.placeholder = "Monto a sumar";
+        amountInput.className = "topup-input";
+        amountInput.value = item.amount || "";
+        amountInput.addEventListener("input", () => {
+          const val = parseFloat(amountInput.value);
+          items[index].amount = isNaN(val) ? 0 : val;
+          persistDebounced();
+        });
+
+        const minusBtn = document.createElement("button");
+        minusBtn.className = "step-btn minus-btn";
+        minusBtn.type = "button";
+        minusBtn.textContent = "−";
+        minusBtn.setAttribute("aria-label", "Restar este monto del total");
+        minusBtn.title = "Restar este monto del total (por si apretaste + de más)";
+        minusBtn.addEventListener("click", () => {
+          const step = Number(items[index].amount) || 0;
+          if (step <= 0) return;
+          items[index].total = Math.max(0, (Number(items[index].total) || 0) - step);
+          renderAll();
+        });
+
+        const plusBtn = document.createElement("button");
+        plusBtn.className = "step-btn plus-btn";
+        plusBtn.type = "button";
+        plusBtn.textContent = "+";
+        plusBtn.setAttribute("aria-label", "Sumar este monto al total");
+        plusBtn.title = "Sumar este monto al total";
+        plusBtn.addEventListener("click", () => {
+          const step = Number(items[index].amount) || 0;
+          if (step <= 0) return;
+          items[index].total = (Number(items[index].total) || 0) + step;
+          renderAll();
+        });
+
+        controls.appendChild(amountInput);
+        controls.appendChild(minusBtn);
+        controls.appendChild(plusBtn);
+
+        row.appendChild(main);
+        row.appendChild(controls);
+      } else {
+        const amountWrap = document.createElement("div");
+        amountWrap.className = "amount-wrap";
+
+        const currency = document.createElement("span");
+        currency.className = "currency";
+        currency.textContent = "$";
+
+        const amountInput = document.createElement("input");
+        amountInput.type = "number";
+        amountInput.min = "0";
+        amountInput.step = "1000";
+        amountInput.value = item.amount;
+        amountInput.addEventListener("input", () => {
+          const val = parseFloat(amountInput.value);
+          items[index].amount = isNaN(val) ? 0 : val;
+          update();
+        });
+
+        amountWrap.appendChild(currency);
+        amountWrap.appendChild(amountInput);
+
+        row.appendChild(checkbox);
+        row.appendChild(nameSpan);
+        row.appendChild(amountWrap);
+        row.appendChild(deleteBtn);
+      }
+
       container.appendChild(row);
     });
   }
 
-  function setupAddForm(prefix, items) {
+  function setupAddForm(prefix, items, isTopUp) {
     const nameInput = document.getElementById(prefix + "AddName");
     const amountInput = document.getElementById(prefix + "AddAmount");
     const addBtn = document.getElementById(prefix + "AddBtn");
@@ -226,7 +291,12 @@
         return;
       }
       const amount = parseFloat(amountInput.value);
-      items.push({ name: name, amount: isNaN(amount) ? 0 : amount, paid: false });
+      const amt = isNaN(amount) ? 0 : amount;
+      if (isTopUp) {
+        items.push({ name: name, amount: amt, total: amt, paid: false });
+      } else {
+        items.push({ name: name, amount: amt, paid: false });
+      }
       nameInput.value = "";
       amountInput.value = "";
       renderAll();
@@ -264,8 +334,8 @@
     const income = Number(data.income) || 0;
     const fixedTotal = sumAmounts(data.fixed);
     const outingTotal = sumAmounts(data.outings);
-    const dailyTotal = sumAmounts(data.daily);
-    const savingsTotal = sumAmounts(data.savings);
+    const dailyTotal = sumTotals(data.daily);
+    const savingsTotal = sumTotals(data.savings);
     const cmrMin = Number(data.cmr.min) || 0;
     const cmrDebt = Number(data.cmr.debt) || 0;
 
@@ -336,8 +406,8 @@
 
   setupAddForm("fixed", data.fixed);
   setupAddForm("outing", data.outings);
-  setupAddForm("daily", data.daily);
-  setupAddForm("savings", data.savings);
+  setupAddForm("daily", data.daily, true);
+  setupAddForm("savings", data.savings, true);
 
   // Re-sync when the tab regains focus, so changes made on another device
   // show up without the user needing to know they should refresh.
