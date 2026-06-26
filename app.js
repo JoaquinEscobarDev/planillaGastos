@@ -11,7 +11,7 @@
   const API_URL = "/api/data/" + config.personId;
   const defaultData = config.defaultData;
 
-  // Items en secciones "acumulables" (Gastos diarios, Ahorro) guardan un
+  // Items en secciones "acumulables" (Salidas, Gastos diarios, Ahorro) guardan un
   // monto a sumar (`amount`) por separado del total acumulado (`total`).
   // Los registros viejos solo tenían `amount` representando el total: lo
   // migramos a `total` y dejamos `amount` en 0 para la próxima suma.
@@ -30,7 +30,7 @@
       income: typeof parsed.income === "number" ? parsed.income : defaultData.income,
       fixed: Array.isArray(parsed.fixed) ? parsed.fixed : structuredClone(defaultData.fixed),
       cmr: parsed.cmr ? parsed.cmr : structuredClone(defaultData.cmr),
-      outings: Array.isArray(parsed.outings) ? parsed.outings : structuredClone(defaultData.outings),
+      outings: ensureTotal(Array.isArray(parsed.outings) ? parsed.outings : structuredClone(defaultData.outings)),
       daily: ensureTotal(Array.isArray(parsed.daily) ? parsed.daily : structuredClone(defaultData.daily || [])),
       savings: ensureTotal(Array.isArray(parsed.savings) ? parsed.savings : structuredClone(defaultData.savings || []))
     };
@@ -321,7 +321,7 @@
     document.getElementById("cmrPaid").checked = !!data.cmr.paid;
 
     renderList("fixedList", data.fixed, "Sin gastos fijos todavía. Agrega uno abajo.");
-    renderList("outingList", data.outings, "Sin salidas todavía. Agrega una abajo.");
+    renderList("outingList", data.outings, "Sin salidas todavía. Agrega una abajo.", true);
     renderList("dailyList", data.daily, "Sin gastos diarios todavía. Agrega uno abajo.", true);
     renderList("savingsList", data.savings, "Sin ahorros todavía. Agrega uno abajo.", true);
 
@@ -333,7 +333,7 @@
   function update() {
     const income = Number(data.income) || 0;
     const fixedTotal = sumAmounts(data.fixed);
-    const outingTotal = sumAmounts(data.outings);
+    const outingTotal = sumTotals(data.outings);
     const dailyTotal = sumTotals(data.daily);
     const savingsTotal = sumTotals(data.savings);
     const cmrMin = Number(data.cmr.min) || 0;
@@ -405,7 +405,7 @@
   });
 
   setupAddForm("fixed", data.fixed);
-  setupAddForm("outing", data.outings);
+  setupAddForm("outing", data.outings, true);
   setupAddForm("daily", data.daily, true);
   setupAddForm("savings", data.savings, true);
 
