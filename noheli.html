@@ -39,6 +39,10 @@
       <span id="sumDaily">$0</span>
     </div>
     <div class="summary-row">
+      <span class="label">Otros gastos</span>
+      <span id="sumOthers">$0</span>
+    </div>
+    <div class="summary-row">
       <span class="label">Ahorro</span>
       <span id="sumSavings">$0</span>
     </div>
@@ -120,6 +124,20 @@
     </div>
   </div>
 
+  <!-- OTROS GASTOS -->
+  <div class="section">
+    <div class="section-header">
+      <span>Otros gastos</span>
+      <span class="section-total" id="othersTotalLabel">$0</span>
+    </div>
+    <div id="othersList"></div>
+    <div class="add-row">
+      <input type="text" id="othersAddName" placeholder="Nombre del gasto">
+      <input type="number" id="othersAddAmount" placeholder="Monto" min="0" step="1000">
+      <button type="button" class="add-btn" id="othersAddBtn">+ Agregar</button>
+    </div>
+  </div>
+
   <!-- AHORRO -->
   <div class="section">
     <div class="section-header">
@@ -158,6 +176,7 @@
         { name: "Café", amount: 0, total: 0, paid: false },
         { name: "Chocolate caliente", amount: 0, total: 0, paid: false }
       ],
+      others: [],
       savings: []
     }
   };
