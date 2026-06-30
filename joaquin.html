@@ -23,6 +23,10 @@
       <span class="amount-green" id="sumIncome">$0</span>
     </div>
     <div class="summary-row">
+      <span class="label">Ingresos extra</span>
+      <span class="amount-green" id="sumExtraIncome">$0</span>
+    </div>
+    <div class="summary-row">
       <span class="label">Gastos fijos</span>
       <span id="sumFixed">$0</span>
     </div>
@@ -59,6 +63,21 @@
     <div class="income-row">
       <label for="incomeInput">Monto del mes</label>
       <input type="number" id="incomeInput" min="0" step="1000">
+    </div>
+  </div>
+
+  <!-- INGRESOS EXTRA -->
+  <div class="section">
+    <div class="section-header">
+      <span>Ingresos extra</span>
+      <span class="section-total" id="extraIncomeTotalLabel">$0</span>
+    </div>
+    <div id="creditLineRow"></div>
+    <div id="extraIncomeList"></div>
+    <div class="add-row">
+      <input type="text" id="extraIncomeAddName" placeholder="Nombre del ingreso">
+      <input type="number" id="extraIncomeAddAmount" placeholder="Monto" min="0" step="1000">
+      <button type="button" class="add-btn" id="extraIncomeAddBtn">+ Agregar</button>
     </div>
   </div>
 
@@ -165,6 +184,8 @@
     headerTitle: "💰 Planilla de Joaquín",
     defaultData: {
       income: 990000,
+      creditLine: { cupo: 300000, amount: 0, total: 300000 },
+      extraIncome: [],
       fixed: [
         { name: "Agua", amount: 12010, paid: false },
         { name: "Luz", amount: 78673, paid: false },

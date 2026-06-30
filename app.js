@@ -26,8 +26,11 @@
   }
 
   function normalize(parsed) {
+    const defaultCL = defaultData.creditLine || { cupo: 300000, amount: 0, total: 300000 };
     return {
       income: typeof parsed.income === "number" ? parsed.income : defaultData.income,
+      creditLine: parsed.creditLine ? parsed.creditLine : structuredClone(defaultCL),
+      extraIncome: ensureTotal(Array.isArray(parsed.extraIncome) ? parsed.extraIncome : structuredClone(defaultData.extraIncome || [])),
       fixed: Array.isArray(parsed.fixed) ? parsed.fixed : structuredClone(defaultData.fixed),
       cmr: parsed.cmr ? parsed.cmr : structuredClone(defaultData.cmr),
       outings: ensureTotal(Array.isArray(parsed.outings) ? parsed.outings : structuredClone(defaultData.outings)),
@@ -56,6 +59,9 @@
     const normalized = normalize(remote);
     data.income = normalized.income;
     data.cmr = normalized.cmr;
+    data.creditLine = normalized.creditLine;
+    data.extraIncome.length = 0;
+    data.extraIncome.push(...normalized.extraIncome);
     data.fixed.length = 0;
     data.fixed.push(...normalized.fixed);
     data.outings.length = 0;
@@ -146,6 +152,105 @@
 
   function sumTotals(items) {
     return items.reduce((acc, item) => acc + (Number(item.total) || 0), 0);
+  }
+
+  function renderCreditLine() {
+    const container = document.getElementById("creditLineRow");
+    container.innerHTML = "";
+    const cl = data.creditLine;
+
+    const row = document.createElement("div");
+    row.className = "item topup";
+
+    const main = document.createElement("div");
+    main.className = "item-main";
+
+    const nameSpan = document.createElement("span");
+    nameSpan.className = "name";
+    nameSpan.textContent = "Línea de crédito";
+
+    const totalSpan = document.createElement("span");
+    totalSpan.className = "topup-total";
+    totalSpan.textContent = formatCLP(cl.total);
+
+    const cupoWrap = document.createElement("div");
+    cupoWrap.style.cssText = "display:flex;align-items:center;gap:4px;flex-shrink:0;";
+
+    const cupoLabel = document.createElement("span");
+    cupoLabel.style.cssText = "font-size:0.75rem;color:var(--text-dim);white-space:nowrap;";
+    cupoLabel.textContent = "Cupo: $";
+
+    const cupoInput = document.createElement("input");
+    cupoInput.type = "number";
+    cupoInput.min = "0";
+    cupoInput.step = "10000";
+    cupoInput.value = cl.cupo;
+    cupoInput.style.cssText = "width:80px;font-size:0.8rem;";
+    cupoInput.addEventListener("input", () => {
+      const val = parseFloat(cupoInput.value);
+      data.creditLine.cupo = isNaN(val) ? 0 : val;
+      persistDebounced();
+    });
+
+    cupoWrap.appendChild(cupoLabel);
+    cupoWrap.appendChild(cupoInput);
+
+    main.appendChild(nameSpan);
+    main.appendChild(totalSpan);
+    main.appendChild(cupoWrap);
+
+    const controls = document.createElement("div");
+    controls.className = "item-controls";
+
+    const amountInput = document.createElement("input");
+    amountInput.type = "number";
+    amountInput.min = "0";
+    amountInput.step = "1000";
+    amountInput.placeholder = "Monto a usar";
+    amountInput.className = "topup-input";
+    amountInput.value = cl.amount || "";
+    amountInput.addEventListener("input", () => {
+      const val = parseFloat(amountInput.value);
+      data.creditLine.amount = isNaN(val) ? 0 : val;
+      persistDebounced();
+    });
+
+    // "−" usa crédito → resta del disponible
+    const usarBtn = document.createElement("button");
+    usarBtn.className = "step-btn minus-btn";
+    usarBtn.type = "button";
+    usarBtn.textContent = "−";
+    usarBtn.title = "Usar este monto (resta del cupo disponible)";
+    usarBtn.setAttribute("aria-label", "Usar este monto de la línea de crédito");
+    usarBtn.addEventListener("click", () => {
+      const step = Number(data.creditLine.amount) || 0;
+      if (step <= 0) return;
+      data.creditLine.total = Math.max(0, (Number(data.creditLine.total) || 0) - step);
+      renderAll();
+    });
+
+    // "+" devuelve crédito → suma de vuelta (tope: cupo)
+    const devolverBtn = document.createElement("button");
+    devolverBtn.className = "step-btn plus-btn";
+    devolverBtn.type = "button";
+    devolverBtn.textContent = "+";
+    devolverBtn.title = "Devolver: recupera crédito disponible";
+    devolverBtn.setAttribute("aria-label", "Recuperar este monto en la línea de crédito");
+    devolverBtn.addEventListener("click", () => {
+      const step = Number(data.creditLine.amount) || 0;
+      if (step <= 0) return;
+      const cupo = Number(data.creditLine.cupo) || 0;
+      data.creditLine.total = Math.min(cupo, (Number(data.creditLine.total) || 0) + step);
+      renderAll();
+    });
+
+    controls.appendChild(amountInput);
+    controls.appendChild(usarBtn);
+    controls.appendChild(devolverBtn);
+
+    row.appendChild(main);
+    row.appendChild(controls);
+    container.appendChild(row);
   }
 
   function renderList(containerId, items, emptyText, allowTopUp) {
@@ -323,6 +428,8 @@
     document.getElementById("cmrMin").value = data.cmr.min;
     document.getElementById("cmrPaid").checked = !!data.cmr.paid;
 
+    renderCreditLine();
+    renderList("extraIncomeList", data.extraIncome, "Sin ingresos extra todavía. Agrega uno abajo.", true);
     renderList("fixedList", data.fixed, "Sin gastos fijos todavía. Agrega uno abajo.");
     renderList("outingList", data.outings, "Sin salidas todavía. Agrega una abajo.", true);
     renderList("dailyList", data.daily, "Sin gastos diarios todavía. Agrega uno abajo.", true);
@@ -336,6 +443,8 @@
 
   function update() {
     const income = Number(data.income) || 0;
+    const extraIncomeTotal = sumTotals(data.extraIncome) + (Number(data.creditLine.total) || 0);
+    const totalIncome = income + extraIncomeTotal;
     const fixedTotal = sumAmounts(data.fixed);
     const outingTotal = sumTotals(data.outings);
     const dailyTotal = sumTotals(data.daily);
@@ -345,8 +454,9 @@
     const cmrDebt = Number(data.cmr.debt) || 0;
 
     const totalExpenses = fixedTotal + outingTotal + dailyTotal + othersTotal + cmrMin + savingsTotal;
-    const available = income - totalExpenses;
+    const available = totalIncome - totalExpenses;
 
+    document.getElementById("extraIncomeTotalLabel").textContent = formatCLP(extraIncomeTotal);
     document.getElementById("fixedTotalLabel").textContent = formatCLP(fixedTotal);
     document.getElementById("outingTotalLabel").textContent = formatCLP(outingTotal);
     document.getElementById("dailyTotalLabel").textContent = formatCLP(dailyTotal);
@@ -354,6 +464,7 @@
     document.getElementById("savingsTotalLabel").textContent = formatCLP(savingsTotal);
 
     document.getElementById("sumIncome").textContent = formatCLP(income);
+    document.getElementById("sumExtraIncome").textContent = formatCLP(extraIncomeTotal);
     document.getElementById("sumFixed").textContent = formatCLP(fixedTotal);
     document.getElementById("sumCmr").textContent = formatCLP(cmrMin);
     document.getElementById("sumOuting").textContent = formatCLP(outingTotal);
@@ -402,6 +513,7 @@
     if (!confirm("¿Resetear el mes? Esto desmarcará todos los gastos y ahorros pagados, pero mantendrá los montos.")) {
       return;
     }
+    data.extraIncome.forEach((item) => { item.paid = false; });
     data.fixed.forEach((item) => { item.paid = false; });
     data.outings.forEach((item) => { item.paid = false; });
     data.daily.forEach((item) => { item.paid = false; });
@@ -412,6 +524,7 @@
     persist();
   });
 
+  setupAddForm("extraIncome", data.extraIncome, true);
   setupAddForm("fixed", data.fixed);
   setupAddForm("outing", data.outings, true);
   setupAddForm("daily", data.daily, true);
